@@ -163,7 +163,9 @@ class MainActivity : LoadingActivity() {
     try {
         currentUser = 0
 
-        appsFragment = AppsFragment.newInstance(currentUser)
+        if (!::appsFragment.isInitialized) {
+            appsFragment = AppsFragment.newInstance(currentUser)
+        }
 
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, appsFragment)
@@ -174,7 +176,7 @@ class MainActivity : LoadingActivity() {
     } catch (e: Exception) {
         Log.e(TAG, "Error loading fragment: ${e.message}")
     }
-    }
+}
 
     fun showFloatButton(show: Boolean) {
         val tranY = Resolution.convertDpToPixel(120F, App.getContext())
