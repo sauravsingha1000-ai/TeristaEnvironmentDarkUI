@@ -3,11 +3,6 @@ package top.niunaijun.blackbox.fake.service;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.util.List;
-
 import top.niunaijun.blackbox.fake.hook.IInjectHook;
 import top.niunaijun.blackbox.utils.Slog;
 
@@ -62,114 +57,24 @@ public class RuntimeProxy implements IInjectHook {
     }
 
     @Override
-    public void injectHook() {
-        if (sHooked) return;
-        try {
-            installRuntimeSubclass();
-            sHooked = true;
-            Slog.d(TAG, "RuntimeProxy installed");
-        } catch (Throwable e) {
-            Slog.w(TAG, "RuntimeProxy install failed (native hooks cover this): " + e.getMessage());
-            // Non-fatal: native AntiDetection hooks already block su detection
-            sHooked = true; // prevent repeated attempts
-        }
+public void injectHook() {
+    if (sHooked) return;
+
+    try {
+        Slog.d(TAG, "RuntimeProxy active (native hooks only)");
+        sHooked = true;
+    } catch (Throwable e) {
+        Slog.w(TAG, "RuntimeProxy failed: " + e.getMessage());
+        sHooked = true;
     }
+}
 
     @Override
     public boolean isBadEnv() {
         return !sHooked;
     }
 
-    /**
-     * Attempts to replace Runtime.currentRuntime with a FakeRuntime instance.
-     * On some Android versions this field is accessible via reflection.
-     */
-    private static void installRuntimeSubclass() throws Exception {
-        Field field = Runtime.class.getDeclaredField("currentRuntime");
-        field.setAccessible(true);
-        Runtime original = (Runtime) field.get(null);
-        if (original instanceof FakeRuntime) return; // already patched
-        FakeRuntime fake = new FakeRuntime(original);
-        field.set(null, fake);
-        Slog.d(TAG, "Runtime.currentRuntime replaced with FakeRuntime");
-    }
-
     // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * FakeRuntime — wraps the real Runtime instance and intercepts exec() calls
-     * that apps use to detect root (su, id, which su, getprop).
-     */
-    public static final class FakeRuntime extends Runtime {
-
-        private final Runtime mReal;
-
-        FakeRuntime(Runtime real) {
-            this.mReal = real;
-        }
-
-        @Override
-        public Process exec(String command) throws java.io.IOException {
-            Slog.d(TAG, "exec: " + command);
-            if (isSuCommand(command))  return new FakeProcess("uid=0(root) gid=0(root)\n");
-            if (isIdCommand(command))  return new FakeProcess("uid=0(root) gid=0(root)\n");
-            if (command.contains("getprop")) return new FakeProcess("");
-            return mReal.exec(command);
-        }
-
-        @Override
-        public Process exec(String[] cmdarray) throws java.io.IOException {
-            String cmd = cmdarray != null && cmdarray.length > 0
-                    ? String.join(" ", cmdarray) : "";
-            Slog.d(TAG, "exec[]: " + cmd);
-            if (isSuCommand(cmd))  return new FakeProcess("uid=0(root) gid=0(root)\n");
-            if (isIdCommand(cmd))  return new FakeProcess("uid=0(root) gid=0(root)\n");
-            if (cmd.contains("getprop")) return new FakeProcess("");
-            return mReal.exec(cmdarray);
-        }
-
-        @Override
-        public Process exec(String command, String[] envp) throws java.io.IOException {
-            return exec(command);
-        }
-
-        @Override
-        public Process exec(String command, String[] envp, java.io.File dir)
-                throws java.io.IOException {
-            return exec(command);
-        }
-
-        @Override
-        public Process exec(String[] cmdarray, String[] envp) throws java.io.IOException {
-            return exec(cmdarray);
-        }
-
-        @Override
-        public Process exec(String[] cmdarray, String[] envp, java.io.File dir)
-                throws java.io.IOException {
-            return exec(cmdarray);
-        }
-
-        // ── Forward everything else to the real Runtime ───────────────────────
-
-        @Override public void gc()                    { mReal.gc(); }
-        @Override public void runFinalization()       { mReal.runFinalization(); }
-        @Override public void exit(int status)        { mReal.exit(status); }
-        @Override public void halt(int status)        { mReal.halt(status); }
-        @Override public long totalMemory()           { return mReal.totalMemory(); }
-        @Override public long freeMemory()            { return mReal.freeMemory(); }
-        @Override public long maxMemory()             { return mReal.maxMemory(); }
-        @Override public int availableProcessors()    { return mReal.availableProcessors(); }
-        @Override public void load(String filename)   { mReal.load(filename); }
-        @Override public void loadLibrary(String libname) { mReal.loadLibrary(libname); }
-        @Override public void addShutdownHook(Thread hook) { mReal.addShutdownHook(hook); }
-        @Override public boolean removeShutdownHook(Thread hook) { return mReal.removeShutdownHook(hook); }
-        @Override public void traceInstructions(boolean on) { /* no-op */ }
-        @Override public void traceMethodCalls(boolean on)  { /* no-op */ }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-
     /**
      * FakeProcess — a completed Process with fixed stdout content.
      * Used to fake the output of su / id / which su commands.
