@@ -25,7 +25,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : LoadingActivity() {
-
+    
+    private lateinit var appsFragment: AppsFragment
     private val viewBinding: ActivityMainBinding by inflate()
     private var currentUser = 0
 
@@ -85,7 +86,7 @@ class MainActivity : LoadingActivity() {
         viewBinding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_apps -> {
-                    loadFragment(AppsFragment.newInstance(currentUser))
+                    loadFragment(appsFragment)
                     viewBinding.tvTitle.text = "Terista"
                     viewBinding.fab.visibility = View.VISIBLE
                     true
@@ -159,13 +160,20 @@ class MainActivity : LoadingActivity() {
     }
 
     private fun loadSingleFragment() {
-        try {
-            currentUser = 0
-            loadFragment(AppsFragment.newInstance(currentUser))
-            viewBinding.bottomNav.selectedItemId = R.id.nav_apps
-        } catch (e: Exception) {
-            Log.e(TAG, "Error loading fragment: ${e.message}")
-        }
+    try {
+        currentUser = 0
+
+        appsFragment = AppsFragment.newInstance(currentUser)
+
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, appsFragment)
+            .commit()
+
+        viewBinding.bottomNav.selectedItemId = R.id.nav_apps
+
+    } catch (e: Exception) {
+        Log.e(TAG, "Error loading fragment: ${e.message}")
+    }
     }
 
     fun showFloatButton(show: Boolean) {
@@ -175,11 +183,15 @@ class MainActivity : LoadingActivity() {
         else viewBinding.fab.animate().translationY(tranY).alpha(0f).setDuration(time).start()
     }
 
-    private val apkPathResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+    private val apkPathResult =
+    registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
-            it.data?.getStringExtra("source")?.let { source ->
-                (supportFragmentManager.findFragmentById(R.id.fragment_container) as? AppsFragment)?.installApk(source)
-                updateSubtitle()
+            it.data?.let { data ->
+                val source = data.getStringExtra("source")
+
+                if (source != null) {
+                    appsFragment.installApk(source)
+                }
             }
         }
     }
