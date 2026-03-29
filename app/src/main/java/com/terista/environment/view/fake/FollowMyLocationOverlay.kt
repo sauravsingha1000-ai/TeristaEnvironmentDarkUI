@@ -3,7 +3,6 @@ package com.terista.environment.view.fake
 import android.app.Activity
 import android.os.Bundle
 import android.view.inputmethod.InputMethodManager
-import androidx.preference.PreferenceManager
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
