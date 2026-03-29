@@ -1,5 +1,6 @@
 package com.terista.environment.view.list
 
+import java.io.File
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -61,7 +62,7 @@ class ListActivity : BaseActivity() {
 
         mAdapter = RVAdapter<InstalledAppBean>(this, ListAdapter())
             .bind(viewBinding.recyclerView)
-            .setItemClickListener { _, item, _ -> finishWithResult(item.packageName) }
+            .setItemClickListener { _, item, _ -> finishWithResult(item.sourceDir) }
 
         viewBinding.recyclerView.layoutManager = LinearLayoutManager(this)
 
@@ -131,9 +132,20 @@ class ListActivity : BaseActivity() {
     }
 
     private val openDocumentedResult =
-        registerForActivityResult(ActivityResultContracts.GetContent()) {
-            it?.run { finishWithResult(it.toString()) }
+    registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            val inputStream = contentResolver.openInputStream(it)
+            val tempFile = File(cacheDir, "install_temp.apk")
+
+            inputStream?.use { input ->
+                tempFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            finishWithResult(tempFile.absolutePath)
         }
+    }
 
     private fun finishWithResult(source: String) {
         intent.putExtra("source", source)
