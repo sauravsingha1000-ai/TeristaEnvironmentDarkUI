@@ -1,6 +1,5 @@
 package com.terista.environment.view.list
 
-import java.io.File
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -62,6 +61,7 @@ class ListActivity : BaseActivity() {
 
         mAdapter = RVAdapter<InstalledAppBean>(this, ListAdapter())
             .bind(viewBinding.recyclerView)
+            // ✅ FIX: pass packageName (NOT sourceDir)
             .setItemClickListener { _, item, _ -> finishWithResult(item.packageName) }
 
         viewBinding.recyclerView.layoutManager = LinearLayoutManager(this)
@@ -131,19 +131,22 @@ class ListActivity : BaseActivity() {
         mAdapter.setItems(newList)
     }
 
+    // ✅ FIXED: Proper file picker (NO temp file, NO nested launcher)
     private val openDocumentedResult =
-    registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            finishWithResult(it.toString())
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
+                finishWithResult(it.toString())
+            }
         }
-    }
 
     private fun finishWithResult(source: String) {
         intent.putExtra("source", source)
         setResult(Activity.RESULT_OK, intent)
 
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        window.peekDecorView()?.run { imm.hideSoftInputFromWindow(windowToken, 0) }
+        window.peekDecorView()?.run {
+            imm.hideSoftInputFromWindow(windowToken, 0)
+        }
 
         finish()
     }
