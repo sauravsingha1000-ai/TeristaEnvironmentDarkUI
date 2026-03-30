@@ -62,7 +62,7 @@ class ListActivity : BaseActivity() {
 
         mAdapter = RVAdapter<InstalledAppBean>(this, ListAdapter())
             .bind(viewBinding.recyclerView)
-            .setItemClickListener { _, item, _ -> finishWithResult(item.sourceDir) }
+            .setItemClickListener { _, item, _ -> finishWithResult(item.packageName) }
 
         viewBinding.recyclerView.layoutManager = LinearLayoutManager(this)
 
@@ -134,16 +134,11 @@ class ListActivity : BaseActivity() {
     private val openDocumentedResult =
     registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            val inputStream = contentResolver.openInputStream(it)
-            val tempFile = File(cacheDir, "install_temp.apk")
-
-            inputStream?.use { input ->
-                tempFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-
-            finishWithResult(tempFile.absolutePath)
+            registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    uri?.let {
+        finishWithResult(it.toString())
+    }
+}
         }
     }
 
