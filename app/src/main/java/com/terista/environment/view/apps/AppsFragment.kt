@@ -416,7 +416,7 @@ fun shouldEnableScroll(): Boolean {
             requireContext().toast(it)
 
             // 🔥 STEP 1: refresh repository cache
-            viewModel.previewInstalledList()
+            viewModel.previewInstalledList(userID)
 
             // 🔥 STEP 2: small delay to ensure BlackBox sync (VERY IMPORTANT)
             viewBinding.recyclerView.postDelayed({
