@@ -78,4 +78,14 @@ class AppsViewModel(private val repo: AppsRepository) : BaseViewModel() {
             repo.updateApkOrder(userID,dataList)
         }
     }
+
+    fun previewInstalledList(userId: Int) {
+    launchOnUI {
+        try {
+            repo.getVmInstallList(userId, appsLiveData)
+        } catch (e: Exception) {
+            Log.e("AppsViewModel", "Preview load failed: ${e.message}")
+        }
+    }
+    }
 }
