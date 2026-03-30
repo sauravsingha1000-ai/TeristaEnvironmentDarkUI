@@ -415,26 +415,22 @@ fun shouldEnableScroll(): Boolean {
             hideLoading()
             requireContext().toast(it)
 
-            // 🔥 STEP 1: refresh repository cache
-viewModel.previewInstalledList()
+            viewModel.previewInstalledList()
 
-// 🔥 STEP 2: small delay to ensure BlackBox sync (VERY IMPORTANT)
-viewBinding.recyclerView.postDelayed({
+            viewBinding.recyclerView.postDelayed({
 
-    // 🔥 STEP 3: clear UI
-    if (::mAdapter.isInitialized) {
-        mAdapter.setItems(emptyList())
-    }
+                if (::mAdapter.isInitialized) {
+                    mAdapter.setItems(emptyList())
+                }
 
-    // 🔥 STEP 4: reload fresh VM apps
-    viewModel.getInstalledAppsWithRetry(userID)
+                viewModel.getInstalledAppsWithRetry(userID)
 
-}, 300)
+            }, 300)
+        } // ✅ THIS BRACE WAS MISSING
     } catch (e: Exception) {
         Log.e(TAG, "Error observing result data: ${e.message}")
     }
 }
-
             viewModel.launchLiveData.observe(viewLifecycleOwner) {
                 try {
                     it?.run {
