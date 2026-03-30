@@ -134,11 +134,7 @@ class ListActivity : BaseActivity() {
     private val openDocumentedResult =
     registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-    uri?.let {
-        finishWithResult(it.toString())
-    }
-}
+            finishWithResult(it.toString())
         }
     }
 
