@@ -407,34 +407,26 @@ fun shouldEnableScroll(): Boolean {
                 } catch (e: Exception) {
                     Log.e(TAG, "Error observing apps data: ${e.message}")
                 }
-
-                viewModel.resultLiveData.observe(viewLifecycleOwner) {
+            }
+            
+            viewModel.resultLiveData.observe(viewLifecycleOwner) {
     try {
-        if (!TextUtils.isEmpty(it) && it.contains("success", true)) {
+        if (!TextUtils.isEmpty(it) && it.lowercase().contains("success")) {
             hideLoading()
             requireContext().toast(it)
 
-            // STEP 1: refresh cache
             viewModel.previewInstalledList(userID)
 
-            // STEP 2: delay (VERY IMPORTANT)
             viewBinding.recyclerView.postDelayed({
-
-                // STEP 3: clear UI
-                if (::mAdapter.isInitialized) {
-                    mAdapter.setItems(emptyList())
-                }
-
-                // STEP 4: reload apps
-                viewModel.getInstalledAppsWithRetry(userID)
-
-            }, 300)
+            viewModel.getInstalledAppsWithRetry(userID)
+        }, 300)
         }
     } catch (e: Exception) {
         Log.e(TAG, "Error observing result data: ${e.message}")
     }
-                }
-                        
+}
+
+            
             viewModel.launchLiveData.observe(viewLifecycleOwner) {
                 try {
                     it?.run {
