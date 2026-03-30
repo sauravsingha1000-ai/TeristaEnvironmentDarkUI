@@ -409,33 +409,7 @@ fun shouldEnableScroll(): Boolean {
                 }
             }
 
-            viewModel.resultLiveData.observe(viewLifecycleOwner) {
-    try {
-        if (!TextUtils.isEmpty(it) && it.contains("success", true)) {
-            hideLoading()
-            requireContext().toast(it)
-
-            // 🔥 STEP 1: refresh repository cache
-            viewModel.previewInstalledList(userID)
-
-            // 🔥 STEP 2: small delay to ensure BlackBox sync (VERY IMPORTANT)
-            viewBinding.recyclerView.postDelayed({
-
-                // 🔥 STEP 3: clear UI
-                if (::mAdapter.isInitialized) {
-                    mAdapter.setItems(emptyList())
-                }
-
-                // 🔥 STEP 4: reload fresh VM apps
-                viewModel.getInstalledAppsWithRetry(userID)
-
-            }, 300)
-        }  // ✅ ONLY THIS LINE ADDED (closing if)
-    } catch (e: Exception) {  // ✅ moved correctly outside if
-        Log.e(TAG, "Error observing result data: ${e.message}")
-    }
-}
-}
+            
             viewModel.launchLiveData.observe(viewLifecycleOwner) {
                 try {
                     it?.run {
