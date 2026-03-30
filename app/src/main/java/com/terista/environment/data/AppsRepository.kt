@@ -187,16 +187,16 @@ class AppsRepository {
             var retryCount = 0
             val maxRetries = 3
 
-            while (applicationList == null && retryCount < maxRetries) {
+            while ((applicationList == null || applicationList.isEmpty()) && retryCount < maxRetries) {
                 try {
                     applicationList = blackBoxCore.getInstalledApplications(0, userId)
-                    if (applicationList == null) {
+                    if (applicationList == null || applicationList.isEmpty()) {
                         Log.w(
                                 TAG,
                                 "getVmInstallList: Attempt ${retryCount + 1} returned null, retrying..."
                         )
                         retryCount++
-                        Thread.sleep(100) 
+                        Thread.sleep(300) 
                     }
                 } catch (e: Exception) {
                     Log.e(
@@ -205,13 +205,13 @@ class AppsRepository {
                     )
                     retryCount++
                     if (retryCount < maxRetries) {
-                        Thread.sleep(200) 
+                        Thread.sleep(400) 
                     }
                 }
             }
 
             
-            if (applicationList == null) {
+            if (applicationList == null || applicationList.isEmpty()) {
                 Log.e(
                         TAG,
                         "getVmInstallList: applicationList is null for userId=$userId after $maxRetries attempts"
@@ -358,66 +358,60 @@ class AppsRepository {
     }
 
     fun installApk(source: String, userId: Int, resultLiveData: MutableLiveData<String>) {
-        try {
-            
-            if (source.contains("blackbox") ||
-                            source.contains("niunaijun") ||
-                            source.contains("vspace") ||
-                            source.contains("virtual")
-            ) {
-                
-                try {
-                    val blackBoxCore = BlackBoxCore.get()
-                    val hostPackageName = BlackBoxCore.getHostPkg()
+    try {
+        val blackBoxCore = BlackBoxCore.get()
 
-                    
-                    if (!URLUtil.isValidUrl(source)) {
-                        val file = File(source)
-                        if (file.exists()) {
-                            val packageInfo =
-                                    BlackBoxCore.getPackageManager()
-                                            .getPackageArchiveInfo(source, 0)
-                            if (packageInfo != null && packageInfo.packageName == hostPackageName) {
-                                resultLiveData.postValue(
-                                        "Cannot install BlackBox app from within BlackBox. This would create infinite recursion and is not allowed for security reasons."
-                                )
-                                return
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Could not verify if this is BlackBox app: ${e.message}")
-                }
-            }
-
-            val blackBoxCore = BlackBoxCore.get()
-            val installResult =
-                    if (URLUtil.isValidUrl(source)) {
-                        val uri = Uri.parse(source)
-                        blackBoxCore.installPackageAsUser(uri, userId)
-                    } else {
-                        blackBoxCore.installPackageAsUser(source, userId)
-                    }
-
-            if (installResult.success) {
-
-    // 🔥 FIX 1: update sort
-    updateAppSortList(userId, installResult.packageName, true)
-
-    // 🔥 FIX 2: refresh installed app cache
-    previewInstallList()
-
-    resultLiveData.postValue(getString(R.string.install_success))
-
-} else {
-                resultLiveData.postValue(getString(R.string.install_fail, installResult.msg))
-            }
-            scanUser()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error installing APK: ${e.message}")
-            resultLiveData.postValue("Installation failed: ${e.message}")
+        // 🔥 REAL INSTALL (IMPORTANT)
+        val installResult = if (URLUtil.isValidUrl(source)) {
+            val uri = Uri.parse(source)
+            blackBoxCore.installPackageAsUser(uri, userId)
+        } else {
+            blackBoxCore.installPackageAsUser(source, userId)
         }
+
+        if (installResult.success) {
+
+            // 🔥 update sort
+            updateAppSortList(userId, installResult.packageName, true)
+
+            // 🔥 optional cache refresh
+            previewInstallList()
+
+            resultLiveData.postValue(getString(R.string.install_success))
+
+            // 🔥 CRITICAL: delay AFTER install
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+    try {
+        val apps = BlackBoxCore.get().getInstalledApplications(0, userId)
+        Log.d(TAG, "Post-install apps size: ${apps.size}")
+
+        // 🔥 FORCE SECOND CHECK (important)
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            try {
+                val apps2 = BlackBoxCore.get().getInstalledApplications(0, userId)
+                Log.d(TAG, "Second sync apps size: ${apps2.size}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Second sync error: ${e.message}")
+            }
+        }, 400)
+
+    } catch (e: Exception) {
+        Log.e(TAG, "Sync error: ${e.message}")
     }
+}, 600)
+
+        } else {
+            resultLiveData.postValue(getString(R.string.install_fail, installResult.msg))
+        }
+
+        // 🔥 cleanup after install
+        scanUser()
+
+    } catch (e: Exception) {
+        Log.e(TAG, "Error installing APK: ${e.message}")
+        resultLiveData.postValue("Installation failed: ${e.message}")
+    }
+}
 
     fun unInstall(packageName: String, userID: Int, resultLiveData: MutableLiveData<String>) {
         try {
