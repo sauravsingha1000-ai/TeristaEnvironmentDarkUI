@@ -392,7 +392,7 @@ fun shouldEnableScroll(): Boolean {
     private fun initData() {
         try {
             viewBinding.stateView.showLoading()
-            viewModel.getInstalledApps(userID)
+            viewModel.getInstalledAppsWithRetry(userID)
             viewModel.appsLiveData.observe(viewLifecycleOwner) {
                 try {
                     if (it != null) {
@@ -410,16 +410,30 @@ fun shouldEnableScroll(): Boolean {
             }
 
             viewModel.resultLiveData.observe(viewLifecycleOwner) {
-                try {
-                    if (!TextUtils.isEmpty(it)) {
-                        hideLoading()
-                        requireContext().toast(it)
-                        viewModel.getInstalledApps(userID)
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error observing result data: ${e.message}")
-                }
-            }
+    try {
+        if (!TextUtils.isEmpty(it) && it.contains("success", true)) {
+            hideLoading()
+            requireContext().toast(it)
+
+            // 🔥 STEP 1: refresh repository cache
+viewModel.previewInstalledList()
+
+// 🔥 STEP 2: small delay to ensure BlackBox sync (VERY IMPORTANT)
+viewBinding.recyclerView.postDelayed({
+
+    // 🔥 STEP 3: clear UI
+    if (::mAdapter.isInitialized) {
+        mAdapter.setItems(emptyList())
+    }
+
+    // 🔥 STEP 4: reload fresh VM apps
+    viewModel.getInstalledAppsWithRetry(userID)
+
+}, 300)
+    } catch (e: Exception) {
+        Log.e(TAG, "Error observing result data: ${e.message}")
+    }
+}
 
             viewModel.launchLiveData.observe(viewLifecycleOwner) {
                 try {
