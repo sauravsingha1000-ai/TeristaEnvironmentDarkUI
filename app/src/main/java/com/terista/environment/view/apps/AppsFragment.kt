@@ -407,9 +407,7 @@ fun shouldEnableScroll(): Boolean {
                 } catch (e: Exception) {
                     Log.e(TAG, "Error observing apps data: ${e.message}")
                 }
-            }
-
-            
+                        
             viewModel.launchLiveData.observe(viewLifecycleOwner) {
                 try {
                     it?.run {
