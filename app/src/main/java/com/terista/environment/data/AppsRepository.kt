@@ -400,9 +400,16 @@ class AppsRepository {
                     }
 
             if (installResult.success) {
-                updateAppSortList(userId, installResult.packageName, true)
-                resultLiveData.postValue(getString(R.string.install_success))
-            } else {
+
+    // 🔥 FIX 1: update sort
+    updateAppSortList(userId, installResult.packageName, true)
+
+    // 🔥 FIX 2: refresh installed app cache
+    previewInstallList()
+
+    resultLiveData.postValue(getString(R.string.install_success))
+
+} else {
                 resultLiveData.postValue(getString(R.string.install_fail, installResult.msg))
             }
             scanUser()
