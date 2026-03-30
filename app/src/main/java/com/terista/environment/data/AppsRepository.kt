@@ -371,41 +371,23 @@ class AppsRepository {
 
         if (installResult.success) {
 
-            // 🔥 update sort
-            updateAppSortList(userId, installResult.packageName, true)
+    updateAppSortList(userId, installResult.packageName, true)
 
-            // 🔥 optional cache refresh
-            previewInstallList()
+    resultLiveData.postValue(getString(R.string.install_success))
 
-            resultLiveData.postValue(getString(R.string.install_success))
-
-            // 🔥 CRITICAL: delay AFTER install
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-    try {
-        val apps = BlackBoxCore.get().getInstalledApplications(0, userId)
-        Log.d(TAG, "Post-install apps size: ${apps.size}")
-
-        // 🔥 FORCE SECOND CHECK (important)
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            try {
-                val apps2 = BlackBoxCore.get().getInstalledApplications(0, userId)
-                Log.d(TAG, "Second sync apps size: ${apps2.size}")
-            } catch (e: Exception) {
-                Log.e(TAG, "Second sync error: ${e.message}")
-            }
-        }, 400)
-
-    } catch (e: Exception) {
-        Log.e(TAG, "Sync error: ${e.message}")
-    }
-}, 600)
-
-        } else {
-            resultLiveData.postValue(getString(R.string.install_fail, installResult.msg))
+    // 🔥 wait for BlackBox install to sync
+    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+        try {
+            val apps = BlackBoxCore.get().getInstalledApplications(0, userId)
+            Log.d(TAG, "Post-install apps size: ${apps.size}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Sync error: ${e.message}")
         }
+    }, 800)
 
-        // 🔥 cleanup after install
-        scanUser()
+} else {
+    resultLiveData.postValue(getString(R.string.install_fail, installResult.msg))
+}
 
     } catch (e: Exception) {
         Log.e(TAG, "Error installing APK: ${e.message}")
