@@ -25,29 +25,29 @@ class AppsViewModel(private val repo: AppsRepository) : BaseViewModel() {
     }
     
     
-    fun getInstalledAppsWithRetry(userId: Int, maxRetries: Int = 3) {
+    fun getInstalledAppsWithRetry(userId: Int) {
+    launchOnUI {
         var retryCount = 0
-        
-        fun attemptLoad() {
-            launchOnUI {
-                repo.getVmInstallList(userId, appsLiveData)
-                
-                
-                val currentApps = appsLiveData.value
-                if ((currentApps == null || currentApps.isEmpty()) && retryCount < maxRetries) {
-                    retryCount++
-                    Log.d("AppsViewModel", "No apps loaded, retrying... (${retryCount}/${maxRetries})")
-                    
-                    
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        attemptLoad()
-                    }, 1000) 
-                }
+        val maxRetries = 5
+
+        while (retryCount < maxRetries) {
+
+            repo.getVmInstallList(userId, appsLiveData)
+
+            val currentApps = appsLiveData.value
+
+            if (!currentApps.isNullOrEmpty()) {
+                Log.d("AppsViewModel", "Apps loaded successfully")
+                break
             }
+
+            retryCount++
+            Log.d("AppsViewModel", "Retrying load... ($retryCount/$maxRetries)")
+
+            kotlinx.coroutines.delay(500)
         }
-        
-        attemptLoad()
     }
+}
 
     fun install(source: String, userID: Int) {
         launchOnUI {
